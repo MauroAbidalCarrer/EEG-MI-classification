@@ -10,7 +10,6 @@ def generate_synthetic_data(num_samples, variances):
     
     return synthetic_data
 
-
 def rotation_matrix_2d(theta):
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
@@ -21,27 +20,30 @@ def rotation_matrix_2d(theta):
     
     return rotation_matrix
 
-def normalize_vector(vector):
-    norm = np.linalg.norm(vector)
-    if norm == 0:
-        return vector  # Avoid division by zero
-    return vector / norm
-
-
 data = generate_synthetic_data(1000, (8, 3))
-cov = data.T @ data
-# print(data.shape)
-eig_vecs, eig_vals = la.eig(cov)
-print(eig_vecs.shape)
 
+# Calculate the covariance matrix
+cov_matrix = np.cov(data, rowvar=False)
+print('covariance matrices:')
+print(cov_matrix)
+print(np.dot(data.T, data))
+
+# Calculate the eigenvectors and eigenvalues
+eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+print(eigenvectors)
+
+# Plot the data points
 plt.scatter(data[:, 0], data[:, 1], c='blue', alpha=0.4)
-for vec in cov:
-    vec = normalize_vector(vec)
-    plt.arrow(0, 0, vec[0], vec[1], color='red')
 
-# for eig_vec in eig_vecs:
-plt.arrow(0, 0, eig_vecs[0], eig_vecs[1], color='green')
+# Plot the covariance column vectors in green
+plt.quiver(0, 0, cov_matrix[0, 0], cov_matrix[1, 0], angles='xy', scale_units='xy', scale=1, color='green', label='Covariance Vector 1')
+plt.quiver(0, 0, cov_matrix[0, 1], cov_matrix[1, 1], angles='xy', scale_units='xy', scale=1, color='green', label='Covariance Vector 2')
 
+# Plot the eigenvectors as red arrows
+for i in range(len(eigenvalues)):
+    eigen_vector = eigenvectors[:, i]
+    scaled_eigen_vector = eigenvalues[i] * eigen_vector
+    plt.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red', label=f'Eigenvector {i+1}')
 
-plt.axis('square')
+plt.axis('equal')
 plt.show()
