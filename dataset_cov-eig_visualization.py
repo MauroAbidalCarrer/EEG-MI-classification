@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib.widgets import Slider
 
 def generate_synthetic_data(num_samples, variances):
@@ -48,7 +49,9 @@ def update(rotation_angle):
         scaled_eigen_vector = eigenvalues[i] * eigen_vector
         ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red', label=f'Eigenvector {i+1}')
 
-    ax.axis('equal')
+    plot_side_length = np.amax(np.linalg.norm(data, axis=1)) * 1.1
+    ax.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
+    ax.set_aspect(1)
     plt.draw()
 
 original_data = generate_synthetic_data(1000, (8, 3))
