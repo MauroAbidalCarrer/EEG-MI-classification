@@ -40,20 +40,25 @@ def rotated_matrix(matrix, angle):
 def update(_):
     ax.clear()
     rotated_datasets = [rotated_matrix(datasets[i], sliders[i].val) for i in range(len(datasets))]
-    cov_matrices = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
-    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0], cov_matrices[1])
-    # print('eigenvalues:', eig_vals)
-    # Handle complex eigenvectors and only use real parts
-    gen_eig_vals = gen_eig_vals.real
-    gen_eig_vecs = gen_eig_vecs.real
-    
     for i in range(len(datasets)):
         ax.scatter(rotated_datasets[i][:, 0], rotated_datasets[i][:, 1], c=datasets_colors[i].scatter, alpha=0.2, label=f'dataset {i}')
+
+    cov_matrices = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
+    def visulize_cov_eig_vecs(cov_matrix):
+        cov_eig_vals, cov_eig_vecs = eig(cov_matrix)
+        for i in range(len(cov_eig_vals)):
+            scaled_eigen_vector = cov_eig_vecs[:, i].real * math.log(cov_eig_vals[i].real) * 2
+            ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red')
+    for cov_matrix in cov_matrices:
+        visulize_cov_eig_vecs(cov_matrix)
+
+    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0], cov_matrices[1])
+    gen_eig_vals = gen_eig_vals.real
+    gen_eig_vecs = gen_eig_vecs.real
     for i in range(len(gen_eig_vals)):
         vec = gen_eig_vecs[:, i]
         scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
         color = matplotlib.colormaps.get_cmap('copper')(gen_eig_vals[i])
-
         ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=color)
         
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
