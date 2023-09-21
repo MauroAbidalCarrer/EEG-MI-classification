@@ -1,50 +1,69 @@
 from collections import OrderedDict
 import math
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from matplotlib.widgets import Slider
 from collections import namedtuple
+from scipy.linalg import eig
 
-ARROW_WIDTH = 0.003
+ARROW_WIDTH = 0.03
 
 def generate_synthetic_data(num_samples, variances):
     return np.random.multivariate_normal((0, 0), np.diag(variances), num_samples)
 
-def rotation_matrix_2d(theta):
-    theta = math.radians(theta)
+def rotated_matrix(matrix, angle):
+    theta = math.radians(angle)
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
-    return np.array([[cos_theta, -sin_theta],
+    return matrix @ np.array([[cos_theta, -sin_theta],
                      [sin_theta, cos_theta]])
 
-def draw_rotated_dataset(data, rotation_angle, dataset_colors, data_index):
-    #Data generation.
-    rotation_matrix = rotation_matrix_2d(rotation_angle)
-    roatated_data = data @ rotation_matrix
-    cov_matrix = np.cov(roatated_data, rowvar=False)
-    eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+# def draw_rotated_dataset(data, rotation_angle, dataset_colors, data_index):
+#     #Data generation.
+#     cov_matrix = np.cov(rotated_data, rowvar=False)
+#     eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
 
-    #Data visualization.
-    ax.scatter(roatated_data[:, 0], roatated_data[:, 1], c=dataset_colors.scatter, alpha=0.35, label=f'dataset {data_index}')
-    ax.quiver(0, 0, cov_matrix[0, 1], cov_matrix[1, 1], angles='xy', scale_units='xy', scale=1, color=dataset_colors.cov, label=f'Covariance Vectors {data_index}', width=ARROW_WIDTH)
-    ax.quiver(0, 0, cov_matrix[0, 0], cov_matrix[1, 0], angles='xy', scale_units='xy', scale=1, color=dataset_colors.cov, width=ARROW_WIDTH)
-    for i in range(len(eigenvalues)):
-        eigen_vector = eigenvectors[:, i]
-        scaled_eigen_vector = eigenvalues[i] * eigen_vector
-        ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=dataset_colors.eig, label=f'Covariance Eigenvectors {data_index}', width=ARROW_WIDTH)
-    ax.axis('equal')
-    handles, labels = ax.get_legend_handles_labels()
-    by_label = OrderedDict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys())
+#     #Data visualization.
+#     ax.quiver(0, 0, cov_matrix[0, 1], cov_matrix[1, 1], angles='xy', scale_units='xy', scale=1, color=dataset_colors.cov, label=f'Covariance Vectors {data_index}', width=ARROW_WIDTH)
+#     ax.quiver(0, 0, cov_matrix[0, 0], cov_matrix[1, 0], angles='xy', scale_units='xy', scale=1, color=dataset_colors.cov, width=ARROW_WIDTH)
+#     for i in range(len(eigenvalues)):
+#         eigen_vector = eigenvectors[:, i]
+#         scaled_eigen_vector = eigenvalues[i] * eigen_vector
+#         ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=dataset_colors.eig, label=f'Covariance Eigenvectors {data_index}', width=ARROW_WIDTH)
+#     ax.axis('equal')
+#     handles, labels = ax.get_legend_handles_labels()
+#     by_label = OrderedDict(zip(labels, handles))
+#     ax.legend(by_label.values(), by_label.keys())
 
 def update(_):
     ax.clear()
+    rotated_datasets = [rotated_matrix(datasets[i], sliders[i].val) for i in range(len(datasets))]
+    cov_matrices = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
+    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0], cov_matrices[1])
+    # print('eigenvalues:', eig_vals)
+    # Handle complex eigenvectors and only use real parts
+    gen_eig_vals = gen_eig_vals.real
+    gen_eig_vecs = gen_eig_vecs.real
+    
     for i in range(len(datasets)):
-        draw_rotated_dataset(datasets[i], sliders[i].val, datasets_colors[i], i)
+        ax.scatter(rotated_datasets[i][:, 0], rotated_datasets[i][:, 1], c=datasets_colors[i].scatter, alpha=0.2, label=f'dataset {i}')
+    for i in range(len(gen_eig_vals)):
+        vec = gen_eig_vecs[:, i]
+        scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
+        color = matplotlib.colormaps.get_cmap('copper')(gen_eig_vals[i])
+
+        ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=color)
+        
+    plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
+    ax.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
+    ax.set_aspect(1)
     plt.draw()
 
 
-datasets = [generate_synthetic_data(500, (8, 1.5)),  generate_synthetic_data(500, (9, 2.5))]
+
+datasets = [generate_synthetic_data(250, (8, 1.5)),  generate_synthetic_data(250, (9, 2.5))]
 Dataset_colors = namedtuple('Dataset_colors', 'scatter cov eig')
 datasets_colors = [Dataset_colors('blue', 'green', 'magenta'), Dataset_colors('red', 'pink', 'black')]
 
@@ -55,8 +74,7 @@ plt.subplots_adjust(bottom=0.25)
 SLIDERS_TOP = 0.15
 ax_sliders = [plt.axes([0.25, SLIDERS_TOP - 0.05 * i, 0.65, 0.03], facecolor='lightgoldenrodyellow') for i in range(len(datasets))]
 sliders = [Slider(ax_slider, f'Rotation Angle {i}', 0, 360, valinit=0) for i, ax_slider in enumerate(ax_sliders)]
-for slider in sliders:
-    slider.on_changed(update)
+for slider in sliders : slider.on_changed(update)
 
 update(0)
 plt.show()
