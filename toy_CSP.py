@@ -22,8 +22,7 @@ def rotation_matrix_2d(theta):
     
     return rotation_matrix
 
-def update(val):
-    rotation_angle = slider.val
+def update(rotation_angle):
     rotation_matrix = rotation_matrix_2d(rotation_angle)
     data = original_data @ rotation_matrix
     
@@ -62,5 +61,5 @@ ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='lightgoldenrodyellow')
 slider = Slider(ax_slider, 'Rotation Angle', 0, 360, valinit=0)
 
 slider.on_changed(update)
-
+update(slider.val)
 plt.show()
