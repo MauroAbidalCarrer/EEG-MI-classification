@@ -49,7 +49,8 @@ def update(_):
     for i in range(len(datasets)):
         og_plot.scatter(rotated_datasets[i][:, 0], rotated_datasets[i][:, 1], c=datasets_colors[i].scatter, alpha=0.2, label=f'dataset {i}')
 
-    cov_matrices = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
+    # cov_matrices = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
+    cov_matrices = [rotated_data.T @ rotated_data for rotated_data in rotated_datasets]
     # def visulize_cov_eig_vecs(cov_matrix):
     #     cov_eig_vals, cov_eig_vecs = eig(cov_matrix)
     #     for i in range(len(cov_eig_vals)):
@@ -65,8 +66,7 @@ def update(_):
         vec = gen_eig_vecs[:, i]
         # scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
         scaled_eigen_vector = vec * 2
-        color = matplotlib.colormaps.get_cmap('copper')(gen_eig_vals[i])
-        og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=color)
+        og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='magenta')
         
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
     og_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
