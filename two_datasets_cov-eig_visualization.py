@@ -7,6 +7,7 @@ import matplotlib.colors as colors
 from matplotlib.widgets import Slider
 from collections import namedtuple
 from scipy.linalg import eig
+from matplotlib.gridspec import GridSpec
 
 ARROW_WIDTH = 0.03
 
@@ -58,40 +59,69 @@ def update(_):
     #         og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red')
     # for cov_matrix in cov_matrices:
     #     visulize_cov_eig_vecs(cov_matrix)
-
-    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0], cov_matrices[1])
-    gen_eig_vals = gen_eig_vals.real
-    gen_eig_vecs = gen_eig_vecs.real
-    for i in range(len(gen_eig_vals)):
-        vec = gen_eig_vecs[:, i]
-        # scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
-        scaled_eigen_vector = vec * 2
-        og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='magenta')
+    def visualize_gen_eig_vecs(cov1, cov2, color):
+        gen_eig_vals, gen_eig_vecs = eig(cov1, cov2)
+        gen_eig_vals = gen_eig_vals.real
+        gen_eig_vecs = gen_eig_vecs.real
+        for i in range(len(gen_eig_vals)):
+            vec = gen_eig_vecs[:, i]
+            scaled_eigen_vector = vec * 2
+            og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=color)
+        return gen_eig_vecs
         
+
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
     og_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
     og_plot.set_aspect(1)
 
-    fil_plot.clear()
-    sort_oreder = np.argsort(gen_eig_vals)[::-1]
-    gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
-    for i, data in enumerate(rotated_datasets):
-        projected_data = data @ gen_eig_vecs
-        fil_plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)
-    fil_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
-    fil_plot.set_aspect(1)
+    # sort_oreder = np.argsort(gen_eig_vals)[::-1]
+    # gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
+    def visualize_filtered_data(filter, plot):
+        plot.clear()
+        for i, data in enumerate(rotated_datasets):
+            projected_data = data @ filter
+            plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)
+        plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
+        plot.set_aspect(1)
+
+    gen_eig_vecs_from_pool_cov = visualize_gen_eig_vecs(cov_matrices[0], cov_matrices[1], 'magenta')
+    visualize_filtered_data(gen_eig_vecs_from_pool_cov, pool_fil_plot)
+
+    conventianal_covs = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
+    gen_eig_vecs_from_conventianol_cov = visualize_gen_eig_vecs(conventianal_covs[0], conventianal_covs[1], 'yellow')
+    visualize_filtered_data(gen_eig_vecs_from_conventianol_cov, coventianal_cov_fil_plot)
+
 
     plt.draw()
 
 
 
-datasets = [generate_synthetic_data(250, (8, 1)),  generate_synthetic_data(250, (9, 1))]
+datasets = [generate_synthetic_data(250, (8, 0.75)),  generate_synthetic_data(250, (9, 0.75))]
 Dataset_colors = namedtuple('Dataset_colors', 'scatter cov eig')
 datasets_colors = [Dataset_colors('red', 'green', 'magenta'), Dataset_colors('blue', 'pink', 'black')]
 
-fig, axes = plt.subplots(1, 2)
-og_plot = axes[0]
-fil_plot = axes[1]
+# fig, axes = plt.subplots(1, 2)
+# og_plot = axes[0]
+# fil_plots = axes[1].subplots(2, 1)
+# pool_fil_plot = fil_plots[0]
+# coventianal_cov_fil_plot = fil_plots[1]
+
+# Create the main subplot with a 1x2 grid
+fig = plt.figure(figsize=(10, 5))
+gs = GridSpec(1, 2, figure=fig)
+
+# Create the first subplot in the main subplot (gs[0])
+og_plot = fig.add_subplot(gs[0])
+
+# Create a nested subplot in the second column (gs[1])
+gs_nested = GridSpec(2, 1, figure=fig, left=0.6, right=0.98, top=0.9, bottom=0.1)
+pool_fil_plot = fig.add_subplot(gs_nested[0])
+
+coventianal_cov_fil_plot = fig.add_subplot(gs_nested[1])
+
+# # Adjust the layout for better spacing
+# plt.tight_layout()
+
 plt.subplots_adjust(bottom=0.25)
 
 # Sliders initialization
