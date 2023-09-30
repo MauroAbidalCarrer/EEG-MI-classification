@@ -1,7 +1,6 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
 from matplotlib.widgets import Slider
 
 def generate_synthetic_data(num_samples, variances):
@@ -23,8 +22,8 @@ def rotation_matrix_2d(theta):
     
     return rotation_matrix
 
-def update(rotation_angle):
-    rotation_matrix = rotation_matrix_2d(rotation_angle)
+def update(_):
+    rotation_matrix = rotation_matrix_2d(rotation_slider.val)
     data = original_data @ rotation_matrix
     
     # Calculate the covariance matrix
@@ -34,35 +33,53 @@ def update(rotation_angle):
     eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
 
     # Clear the previous plot
-    ax.clear()
+    og_plot.clear()
     
     # Plot the data points
-    ax.scatter(data[:, 0], data[:, 1], c='blue', alpha=0.4)
+    og_plot.scatter(data[:, 0], data[:, 1], c='blue', alpha=0.4)
 
     # Plot the covariance column vectors in green
-    ax.quiver(0, 0, cov_matrix[0, 0], cov_matrix[1, 0], angles='xy', scale_units='xy', scale=1, color='green', label='Covariance Vector 1')
-    ax.quiver(0, 0, cov_matrix[0, 1], cov_matrix[1, 1], angles='xy', scale_units='xy', scale=1, color='green', label='Covariance Vector 2')
+    og_plot.quiver(0, 0, cov_matrix[0, 0], cov_matrix[1, 0], angles='xy', scale_units='xy', scale=1, color='green', label='Covariance Vector 1')
+    og_plot.quiver(0, 0, cov_matrix[0, 1], cov_matrix[1, 1], angles='xy', scale_units='xy', scale=1, color='green', label='Covariance Vector 2')
 
     # Plot the eigenvectors as red arrows
     for i in range(len(eigenvalues)):
         eigen_vector = eigenvectors[:, i]
         scaled_eigen_vector = eigenvalues[i] * eigen_vector
-        ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red', label=f'Eigenvector {i+1}')
+        og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red', label=f'Eigenvector {i+1}')
 
     plot_side_length = np.amax(np.linalg.norm(data, axis=1)) * 1.1
-    ax.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
-    ax.set_aspect(1)
+    og_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
+    og_plot.set_aspect(1)
+
+    cov_dot_plot.clear()
+    cov_projected_data = data @ cov_matrix
+    t = interpolation_slider.val
+    interpolated_data = np.array([data[i] * (t - 1) + cov_projected_data[i] * t for i in range(data.shape[0])])
+    cov_dot_plot.scatter(interpolated_data[:, 0], interpolated_data[:, 1], c='blue', alpha=0.3)
+    plot_side_length = np.amax(np.linalg.norm(interpolated_data, axis=1)) * 1.1
+    cov_dot_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
+    cov_dot_plot.set_aspect(1)
+
     plt.draw()
 
 original_data = generate_synthetic_data(1000, (8, 3))
 
-fig, ax = plt.subplots()
+fig, axes = plt.subplots(1, 2)
+og_plot = axes[0]
+cov_dot_plot = axes[1]
+
 plt.subplots_adjust(bottom=0.25)
 
 # Create a slider for the rotation angle
-ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor='lightgoldenrodyellow')
-slider = Slider(ax_slider, 'Rotation Angle', 0, 360, valinit=0)
+def mk_slider(bottom, name, max_value):
+    ax_slider = plt.axes([0.25, bottom, 0.5, 0.03], facecolor='lightgoldenrodyellow')
+    slider = Slider(ax_slider, name, 0, max_value, valinit=0)
+    slider.on_changed(update)
+    return slider
 
-slider.on_changed(update)
-update(slider.val)
+rotation_slider = mk_slider(0.1, 'Rotation angle', 360)
+interpolation_slider = mk_slider(0, 'interpolation', 1)
+
+update(0)
 plt.show()
