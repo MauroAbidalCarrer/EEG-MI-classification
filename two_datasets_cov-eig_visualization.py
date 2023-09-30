@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib.widgets import Slider
 from collections import namedtuple
-from scipy.linalg import eig
+from scipy.linalg import eigh
 
 ARROW_WIDTH = 0.03
 
@@ -49,8 +49,7 @@ def update(_):
     for i in range(len(datasets)):
         og_plot.scatter(rotated_datasets[i][:, 0], rotated_datasets[i][:, 1], c=datasets_colors[i].scatter, alpha=0.2, label=f'dataset {i}')
 
-    # cov_matrices = [np.cov(rotated_data, rowvar=False) for rotated_data in rotated_datasets]
-    cov_matrices = [rotated_data.T @ rotated_data for rotated_data in rotated_datasets]
+    cov_matrices = np.array([rotated_data.T @ rotated_data for rotated_data in rotated_datasets])
     # def visulize_cov_eig_vecs(cov_matrix):
     #     cov_eig_vals, cov_eig_vecs = eig(cov_matrix)
     #     for i in range(len(cov_eig_vals)):
@@ -59,13 +58,13 @@ def update(_):
     # for cov_matrix in cov_matrices:
     #     visulize_cov_eig_vecs(cov_matrix)
 
-    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0], cov_matrices[1])
+    gen_eig_vals, gen_eig_vecs = eigh(cov_matrices[0], cov_matrices.sum(0))
     gen_eig_vals = gen_eig_vals.real
     gen_eig_vecs = gen_eig_vecs.real
     for i in range(len(gen_eig_vals)):
         vec = gen_eig_vecs[:, i]
-        # scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
-        scaled_eigen_vector = vec * 2
+        scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
+        # scaled_eigen_vector = vec * 2
         og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='magenta')
         
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
@@ -73,8 +72,9 @@ def update(_):
     og_plot.set_aspect(1)
 
     fil_plot.clear()
-    sort_oreder = np.argsort(gen_eig_vals)[::-1]
-    gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
+    # sort_oreder = np.argsort(gen_eig_vals)[::-1]
+    # gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
+    plot_side_length /= 50
     for i, data in enumerate(rotated_datasets):
         projected_data = data @ gen_eig_vecs
         fil_plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)
@@ -82,7 +82,6 @@ def update(_):
     fil_plot.set_aspect(1)
 
     plt.draw()
-
 
 
 datasets = [generate_synthetic_data(250, (8, 1)),  generate_synthetic_data(250, (9, 1))]
