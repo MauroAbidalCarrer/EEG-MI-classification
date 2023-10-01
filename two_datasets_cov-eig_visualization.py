@@ -67,7 +67,6 @@ def update(_):
         # scaled_eigen_vector = vec * 2
         og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='magenta')
         
-
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
     og_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
     og_plot.set_aspect(1)
@@ -75,7 +74,7 @@ def update(_):
     fil_plot.clear()
     # sort_oreder = np.argsort(gen_eig_vals)[::-1]
     # gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
-    plot_side_length /= 50
+    plot_side_length *= 10 
     for i, data in enumerate(rotated_datasets):
         projected_data = data @ gen_eig_vecs
         fil_plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)
@@ -89,28 +88,9 @@ datasets = [generate_synthetic_data(250, (8, 1)),  generate_synthetic_data(250, 
 Dataset_colors = namedtuple('Dataset_colors', 'scatter cov eig')
 datasets_colors = [Dataset_colors('red', 'green', 'magenta'), Dataset_colors('blue', 'pink', 'black')]
 
-# fig, axes = plt.subplots(1, 2)
-# og_plot = axes[0]
-# fil_plots = axes[1].subplots(2, 1)
-# pool_fil_plot = fil_plots[0]
-# coventianal_cov_fil_plot = fil_plots[1]
-
-# Create the main subplot with a 1x2 grid
-fig = plt.figure(figsize=(10, 5))
-gs = GridSpec(1, 2, figure=fig)
-
-# Create the first subplot in the main subplot (gs[0])
-og_plot = fig.add_subplot(gs[0])
-
-# Create a nested subplot in the second column (gs[1])
-gs_nested = GridSpec(2, 1, figure=fig, left=0.6, right=0.98, top=0.9, bottom=0.1)
-pool_fil_plot = fig.add_subplot(gs_nested[0])
-
-coventianal_cov_fil_plot = fig.add_subplot(gs_nested[1])
-
-# # Adjust the layout for better spacing
-# plt.tight_layout()
-
+fig, axes = plt.subplots(1, 2)
+og_plot = axes[0]
+fil_plot = axes[1]
 plt.subplots_adjust(bottom=0.25)
 
 # Sliders initialization
