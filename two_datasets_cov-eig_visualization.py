@@ -1,12 +1,9 @@
-from collections import OrderedDict
 import math
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 from matplotlib.widgets import Slider
 from collections import namedtuple
-from scipy.linalg import eigh
+from scipy.linalg import eigh, norm
 
 ARROW_WIDTH = 0.03
 
@@ -63,9 +60,9 @@ def update(_):
     gen_eig_vecs = gen_eig_vecs.real
     for i in range(len(gen_eig_vals)):
         vec = gen_eig_vecs[:, i]
-        scaled_eigen_vector = vec * math.log(gen_eig_vals[i]) * 2
+        scaled_eigen_vector = vec / norm(vec)#* math.log(gen_eig_vals[i]) * 2
         # scaled_eigen_vector = vec * 2
-        og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='magenta')
+        og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=datasets_colors[i].scatter)
         
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
     og_plot.axis([-plot_side_length, plot_side_length, -plot_side_length, plot_side_length])
@@ -74,7 +71,7 @@ def update(_):
     fil_plot.clear()
     # sort_oreder = np.argsort(gen_eig_vals)[::-1]
     # gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
-    plot_side_length *= 10 
+    plot_side_length /= 50
     for i, data in enumerate(rotated_datasets):
         projected_data = data @ gen_eig_vecs
         fil_plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)
@@ -84,7 +81,7 @@ def update(_):
     plt.draw()
 
 
-datasets = [generate_synthetic_data(250, (8, 1)),  generate_synthetic_data(250, (9, 1))]
+datasets = [generate_synthetic_data(250, (10, 1)),  generate_synthetic_data(250, (10, 1))]
 Dataset_colors = namedtuple('Dataset_colors', 'scatter cov eig')
 datasets_colors = [Dataset_colors('red', 'green', 'magenta'), Dataset_colors('blue', 'pink', 'black')]
 
