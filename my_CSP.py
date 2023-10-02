@@ -25,6 +25,15 @@ class MyCSP(BaseEstimator, TransformerMixin):
         """
         self.n_components = n_components
 
+    def _normalize_eigenvectors(self, eigen_vectors, covs, sample_weights):
+        # Here we apply an euclidean mean. See pyRiemann for other metrics
+        mean_cov = np.average(covs, axis=0, weights=sample_weights)
+
+        for ii in range(eigen_vectors.shape[1]):
+            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov), eigen_vectors[:, ii])
+            eigen_vectors[:, ii] /= np.sqrt(tmp)
+        return eigen_vectors
+
     def fit(self, x, y):
         """
         Args:
@@ -43,15 +52,25 @@ class MyCSP(BaseEstimator, TransformerMixin):
             class_epochs = x[class_epochs_indices]
             class_samples = np.concatenate(class_epochs, axis=1)
             samples_per_class.append(class_samples)
+        print('my_concat_epochs')
+
+
 
         # print('class_samples.shape: ', samples_per_class[0].shape)
         covariance_matrices = np.asarray([np.cov(class_samples @ class_samples.T) for class_samples in samples_per_class])
+        print('my_covs:\n', covariance_matrices)
+        
+        # cov_mats_weights = np.asarray([float(class_samples.shape[1]) for class_samples in samples_per_class])
         gen_eig_vals, gen_eig_vecs = eigh(covariance_matrices[0], covariance_matrices.sum(0))
         gen_eig_vals = gen_eig_vals.real
         gen_eig_vecs = gen_eig_vecs.real
-        normed_gen_eig_vecs = gen_eig_vecs / norm(gen_eig_vecs, axis=1, keepdims=True)
-        descending_order_indices = np.argsort(abs(gen_eig_vals))[::-1]
-        self.filters_ = normed_gen_eig_vecs[:, descending_order_indices].T
+        print('my_CSP eig vals:\n', gen_eig_vals)
+        # normed_gen_eig_vecs = self._normalize_eigenvectors(gen_eig_vecs, covariance_matrices, cov_mats_weights)
+
+        # normed_gen_eig_vecs = gen_eig_vecs / norm(gen_eig_vecs, axis=1, keepdims=True)
+        descending_order_indices = np.argsort(np.abs(gen_eig_vals))[::-1]
+        self.filters_ = gen_eig_vecs[descending_order_indices]
+        # self.filters_ = normed_gen_eig_vecs[:, descending_order_indices].T
         self.patterns_ = pinv(self.filters_)
         return self
     
@@ -72,10 +91,11 @@ class MyCSP(BaseEstimator, TransformerMixin):
         return final_output
     
     def plot_patterns(self, raw_info, ch_type='eeg'):
-        return plot_topomap(
-            self.patterns_[:, 0],
-            raw_info,
-            # units="Patterns (AU)",
-            size=1.5,
-            ch_type=ch_type
-        )
+        for component in self.filters_.T[:self.n_components + 1]:
+            plot_topomap(
+                component,
+                raw_info,
+                # units="Patterns (AU)",
+                size=1.5,
+                ch_type=ch_type
+            )
