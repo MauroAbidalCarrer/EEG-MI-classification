@@ -23,23 +23,6 @@ def normalize_vector(vector):
         return vector  # Avoid division by zero
     return vector / norm
 
-# def draw_rotated_dataset(data, rotation_angle, dataset_colors, data_index):
-#     #Data generation.
-#     cov_matrix = np.cov(rotated_data, rowvar=False)
-#     eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
-
-#     #Data visualization.
-#     ax.quiver(0, 0, cov_matrix[0, 1], cov_matrix[1, 1], angles='xy', scale_units='xy', scale=1, color=dataset_colors.cov, label=f'Covariance Vectors {data_index}', width=ARROW_WIDTH)
-#     ax.quiver(0, 0, cov_matrix[0, 0], cov_matrix[1, 0], angles='xy', scale_units='xy', scale=1, color=dataset_colors.cov, width=ARROW_WIDTH)
-#     for i in range(len(eigenvalues)):
-#         eigen_vector = eigenvectors[:, i]
-#         scaled_eigen_vector = eigenvalues[i] * eigen_vector
-#         ax.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=dataset_colors.eig, label=f'Covariance Eigenvectors {data_index}', width=ARROW_WIDTH)
-#     ax.axis('equal')
-#     handles, labels = ax.get_legend_handles_labels()
-#     by_label = OrderedDict(zip(labels, handles))
-#     ax.legend(by_label.values(), by_label.keys())
-
 def update(_):
     og_plot.clear()
     rotated_datasets = [rotated_matrix(datasets[i], sliders[i].val) for i in range(len(datasets))]
@@ -47,21 +30,13 @@ def update(_):
         og_plot.scatter(rotated_datasets[i][:, 0], rotated_datasets[i][:, 1], c=datasets_colors[i].scatter, alpha=0.2, label=f'dataset {i}')
 
     cov_matrices = np.array([rotated_data.T @ rotated_data for rotated_data in rotated_datasets])
-    # def visulize_cov_eig_vecs(cov_matrix):
-    #     cov_eig_vals, cov_eig_vecs = eig(cov_matrix)
-    #     for i in range(len(cov_eig_vals)):
-    #         scaled_eigen_vector = cov_eig_vecs[:, i].real * math.log(cov_eig_vals[i].real) * 2
-    #         og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color='red')
-    # for cov_matrix in cov_matrices:
-    #     visulize_cov_eig_vecs(cov_matrix)
 
-    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0] + cov_matrices[1])
+    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0], np.sum(cov_matrices, axis=0))
     gen_eig_vals = gen_eig_vals.real
     gen_eig_vecs = gen_eig_vecs.real
     for i in range(len(gen_eig_vals)):
         vec = gen_eig_vecs[:, i]
-        scaled_eigen_vector = vec / norm(vec)#* math.log(gen_eig_vals[i]) * 2
-        # scaled_eigen_vector = vec * 2
+        scaled_eigen_vector = vec / norm(vec)
         og_plot.quiver(0, 0, scaled_eigen_vector[0], scaled_eigen_vector[1], angles='xy', scale_units='xy', scale=1, color=datasets_colors[i].scatter)
         
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
@@ -69,9 +44,6 @@ def update(_):
     og_plot.set_aspect(1)
 
     fil_plot.clear()
-    # sort_oreder = np.argsort(gen_eig_vals)[::-1]
-    # gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
-    # plot_side_length /= 50
     for i, data in enumerate(rotated_datasets):
         projected_data = data @ gen_eig_vecs
         fil_plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)

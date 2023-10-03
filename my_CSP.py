@@ -31,21 +31,19 @@ def spatialFilter(Ra,Rb):
         return vals[ord].real, vecs[:, ord].real
 
     # Compute whitening matrix.
-    R = Ra + Rb
-    E, U = sorted_eig(*eig(R))
-    P = np.sqrt(inv(np.diag(E))) @ U.T
-    P = P.real
-    
+    E, U = sorted_eig(*eig(Ra + Rb))
+    white_mat = np.sqrt(inv(np.diag(E))) @ U.T
+    white_mat = white_mat.real
 
     # The mean covariance matrices may now be transformed
-    Sa = P @ Ra @ P.T
-    Sb = P @ Rb @ P.T
+    Sa = white_mat @ Ra @ white_mat.T
+    Sb = white_mat @ Rb @ white_mat.T
 
     # Find and sort the generalized eigenvalues and eigenvector
-    _, U1 = sorted_eig(*eig(Sa,Sb))
+    _, U1 = sorted_eig(*eig(Sa, Sb))
 
     # The projection matrix (the spatial filter) may now be obtained
-    SFa = np.dot(np.transpose(U1),P)
+    SFa = U1.T @ white_mat
     return SFa.astype(np.float32)
 
 class MyCSP(BaseEstimator, TransformerMixin):
