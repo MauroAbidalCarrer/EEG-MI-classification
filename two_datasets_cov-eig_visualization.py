@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 from collections import namedtuple
-from scipy.linalg import eigh, norm
+from scipy.linalg import eigh, eig, norm
 
 ARROW_WIDTH = 0.03
 
@@ -55,7 +55,7 @@ def update(_):
     # for cov_matrix in cov_matrices:
     #     visulize_cov_eig_vecs(cov_matrix)
 
-    gen_eig_vals, gen_eig_vecs = eigh(cov_matrices[0], cov_matrices.sum(0))
+    gen_eig_vals, gen_eig_vecs = eig(cov_matrices[0] + cov_matrices[1])
     gen_eig_vals = gen_eig_vals.real
     gen_eig_vecs = gen_eig_vecs.real
     for i in range(len(gen_eig_vals)):
@@ -71,7 +71,7 @@ def update(_):
     fil_plot.clear()
     # sort_oreder = np.argsort(gen_eig_vals)[::-1]
     # gen_eig_vecs = np.array([normalize_vector(gen_eig_vec) for gen_eig_vec in gen_eig_vecs]) #[sort_oreder]
-    plot_side_length /= 50
+    # plot_side_length /= 50
     for i, data in enumerate(rotated_datasets):
         projected_data = data @ gen_eig_vecs
         fil_plot.scatter(projected_data[:, 0], projected_data[:, 1], c=datasets_colors[i].scatter, alpha=0.2)
