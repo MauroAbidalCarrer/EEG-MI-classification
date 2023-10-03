@@ -21,49 +21,14 @@ def pinv(a, rtol=None):
     u /= s[:rank]
     return (u @ vh[:rank]).conj().T
 
-def CSP(*tasks):
-	if len(tasks) < 2:
-		raise ValueError("Must have at least 2 tasks for filtering.")
-		return (None,) * len(tasks)
-	else:
-		filters = ()
-		# CSP algorithm
-		# For each task x, find the mean variances Rx and not_Rx, which will be used to compute spatial filter SFx
-		iterator = range(0,len(tasks))
-		for x in iterator:
-			# Find Rx
-			Rx = covarianceMatrix(tasks[x][0])
-			for t in range(1,len(tasks[x])):
-				Rx += covarianceMatrix(tasks[x][t])
-			Rx = Rx / len(tasks[x])
-
-			# Find not_Rx
-			count = 0
-			not_Rx = Rx * 0
-			for not_x in [element for element in iterator if element != x]:
-				for t in range(0,len(tasks[not_x])):
-					not_Rx += covarianceMatrix(tasks[not_x][t])
-					count += 1
-			not_Rx = not_Rx / count
-
-			# Find the spatial filter SFx
-			SFx = spatialFilter(Rx,not_Rx)
-			filters += (SFx,)
-
-			# Special case: only two tasks, no need to compute any more mean variances
-			if len(tasks) == 2:
-				filters += (spatialFilter(not_Rx,Rx),)
-				break
-		return filters
+def CSP(a_class_epochs, b_class_epochs):
+    mean_cov_over_epochs = lambda epochs : np.mean([covarianceMatrix(task) for task in epochs], axis=0)
+    return spatialFilter(mean_cov_over_epochs(b_class_epochs), mean_cov_over_epochs(a_class_epochs))
 
 # covarianceMatrix takes a matrix A and returns the covariance matrix, scaled by the variance
 def covarianceMatrix(A):
-    # print('A.shape:', A.shape)
-    C = A @ A.T
-    # print('C.shape:', C.shape)
-    trace = np.trace(C) 
-	# Ca = np.trace(np.dot(A,np.transpose(A)))
-    return C / trace
+    cov_mat = A @ A.T
+    return cov_mat / np.trace(cov_mat) 
 
 
 def spatialFilter(Ra,Rb):
@@ -78,8 +43,7 @@ def spatialFilter(Ra,Rb):
     U = U.real
 
     # Find the whitening transformation matrix
-    P = np.dot(np.sqrt(inv(np.diag(E))),np.transpose(U))
-    P = P.real
+    P = np.dot(np.sqrt(inv(np.diag(E))),np.transpose(U)).real
 
     # The mean covariance matrices may now be transformed
     Sa = np.dot(P,np.dot(Ra,np.transpose(P)))
@@ -119,17 +83,6 @@ class MyCSP(BaseEstimator, TransformerMixin):
         if n_unique_labels != 2: 
             raise ValueError(f"Could not fit CSP, there are {n_unique_labels} unique labels. Two were expected.")
 
-        # # transform X into an array "samples_per_class" of shape (n_classes(2), n_channels, n_times/samples)
-        # # samples_per_class[0] is all the concatenated samples of class 0, same goes for samples_per_class[]
-        # samples_per_class = []
-        # for class_index in range(2):
-        #     class_label = unique_labels[class_index]
-        #     class_epochs_mask = np.where(y==class_label)
-        #     class_epochs = x[class_epochs_mask]
-        #     class_samples = np.concatenate(class_epochs, axis=1)
-        #     samples_per_class.append(class_samples)
-        # transform X into an array "samples_per_class" of shape (n_classes(2), n_channels, n_times/samples)
-        # samples_per_class[0] is all the concatenated samples of class 0, same goes for samples_per_class[]
         epochs_per_class = [] # n_classes, n_channels, n_samples
         for class_index in range(2):
             class_label = unique_labels[class_index]
@@ -139,35 +92,7 @@ class MyCSP(BaseEstimator, TransformerMixin):
             epochs_per_class.append(class_epochs)
 
         # print(samples_per_class[0].T.shape)
-        self.filters_ = CSP(epochs_per_class[0], epochs_per_class[1])[1]
-        # print(self.filters_.shape)
-        
-        # # samples_per_class = np.asarray(samples_per_class)
-
-        # #mean center samples
-        # # self.channels_means_per_class = [np.mean(class_samples, axis=1, keepdims=True) for class_samples in samples_per_class]
-        # # print('means:\n', self.channels_means_per_class)
-        # # samples_per_class[0] -= self.channels_means_per_class[0]
-        # # samples_per_class[1] -= self.channels_means_per_class[1]
-
-        # # print('class_samples.shape: ', samples_per_class[0].shape)
-        # covariance_matrices = np.asarray([np.cov(class_samples @ class_samples.T) / class_samples.shape[1] for class_samples in samples_per_class])
-        # covariance_matrices = np.asarray([cov_mat / np.trace(cov_mat) for cov_mat in covariance_matrices])
-        # # print('my_covs:\n', covariance_matrices)
-        
-        # # # cov_mats_weights = np.asarray([float(class_samples.shape[1]) for class_samples in samples_per_class])
-        # # # gen_eig_vals, gen_eig_vecs = eigh(covariance_matrices[0], covariance_matrices.sum(0))
-        # # gen_eig_vals, gen_eig_vecs = eig(covariance_matrices[0], covariance_matrices.sum(0))
-        # # gen_eig_vals = gen_eig_vals.real
-        # # gen_eig_vecs = gen_eig_vecs.real
-        # # # print('my_CSP eig vals:\n', gen_eig_vals)
-        # # # normed_gen_eig_vecs = self._normalize_eigenvectors(gen_eig_vecs, covariance_matrices, cov_mats_weights)
-
-        # # # normed_gen_eig_vecs = gen_eig_vecs / norm(gen_eig_vecs, axis=1, keepdims=True)
-        # # descending_order_indices = np.argsort(np.abs(gen_eig_vals))[::-1]
-        # # self.filters_ = gen_eig_vecs[descending_order_indices]
-        
-        # self.filters_ = spatialFilter(covariance_matrices[0], covariance_matrices[1])
+        self.filters_ = CSP(epochs_per_class[0], epochs_per_class[1])
 
         self.patterns_ = pinv(self.filters_)
         return self
