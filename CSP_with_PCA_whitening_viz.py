@@ -7,9 +7,6 @@ from scipy.linalg import eigh, eig, norm, inv
 
 ARROW_WIDTH = 0.03
 
-def sigmoid(x):
- return 1/(1 + np.exp(-x))
-
 
 def generate_synthetic_data(num_samples, variances):
     return np.random.multivariate_normal((0, 0), np.diag(variances), num_samples)
@@ -48,6 +45,10 @@ def spatialFilter(Ra,Rb):
     SFa = U1.T @ white_mat
     return SFa.astype(np.float32)
 
+def covarianceMatrix(A):
+    cov_mat = A.T @ A
+    return cov_mat / np.trace(cov_mat) 
+
 def set_plot_side_length(plot, side_length):
     plot.axis([-side_length, side_length, -side_length, side_length])
     plot.set_aspect(1)
@@ -61,7 +62,7 @@ def update(_):
         og_plot.scatter(rotated_datasets[i][:, 0], rotated_datasets[i][:, 1], c=datasets_colors[i].scatter, alpha=0.2, label=f'dataset {i}')
 
 
-    cov_matrices = np.array([rotated_data.T @ rotated_data for rotated_data in rotated_datasets])
+    cov_matrices = np.asarray([covarianceMatrix(rotated_data) for rotated_data in rotated_datasets])
     filters = spatialFilter(cov_matrices[0], cov_matrices[1])
 
     #Visualize filters
@@ -77,7 +78,7 @@ def update(_):
     #set dims
     plot_side_length = np.amax([np.linalg.norm(dataset, axis=1) for dataset in datasets]) * 1.1
     set_plot_side_length(og_plot, plot_side_length)
-    set_plot_side_length(fil_plot, plot_side_length / 25)
+    set_plot_side_length(fil_plot, plot_side_length * 2)
     plt.draw()
 
 

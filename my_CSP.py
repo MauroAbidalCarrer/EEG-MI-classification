@@ -30,17 +30,13 @@ class MyCSP(BaseEstimator, TransformerMixin):
         if n_unique_labels != 2: 
             raise ValueError(f"Could not fit CSP, there are {n_unique_labels} unique labels. Two were expected.")
 
-        epochs_per_class = [] # n_classes, n_channels, n_samples
-        for class_index in range(2):
+        def mean_cov_of_class(class_index):
             class_label = unique_labels[class_index]
             class_epochs_mask = np.where(y==class_label)
             class_epochs = x[class_epochs_mask]
-            epochs_per_class.append(class_epochs)
+            return np.mean([covarianceMatrix(epoch) for epoch in class_epochs], axis=0)
 
-        mean_covariance = lambda epochs : np.mean([covarianceMatrix(task) for task in epochs], axis=0)
-        mean_cov_b = mean_covariance(epochs_per_class[1])
-        mean_cov_a = mean_covariance(epochs_per_class[0])
-        self.filters_ = spatialFilter(mean_cov_b, mean_cov_a)
+        self.filters_ = spatialFilter(mean_cov_of_class(1), mean_cov_of_class(0))
         self.patterns_ = pinv(self.filters_)
         
         return self
