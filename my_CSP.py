@@ -4,47 +4,7 @@ from scipy.linalg import eigh, norm, inv, eig
 from mne.viz import plot_topomap
 import matplotlib.pyplot as plt
 
-def pinv(a, rtol=None):
-    """Compute a pseudo-inverse of a matrix."""
-    u, s, vh = np.linalg.svd(a, full_matrices=False)
-    del a
-    maxS = np.max(s)
-    if rtol is None:
-        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
-    rank = np.sum(s > maxS * rtol)
-    u = u[:, :rank]
-    u /= s[:rank]
-    return (u @ vh[:rank]).conj().T
 
-def CSP(a_class_epochs, b_class_epochs):
-    mean_cov_over_epochs = lambda epochs : np.mean([covarianceMatrix(task) for task in epochs], axis=0)
-    return spatialFilter(mean_cov_over_epochs(b_class_epochs), mean_cov_over_epochs(a_class_epochs))
-
-# covarianceMatrix takes a matrix A and returns the covariance matrix, scaled by the variance
-def covarianceMatrix(A):
-    cov_mat = A @ A.T
-    return cov_mat / np.trace(cov_mat) 
-
-def spatialFilter(Ra,Rb):
-    def sorted_eig(vals, vecs):
-        ord = np.argsort(vals)[::-1]
-        return vals[ord].real, vecs[:, ord].real
-
-    # Compute whitening matrix.
-    E, U = sorted_eig(*eig(Ra + Rb))
-    white_mat = np.sqrt(inv(np.diag(E))) @ U.T
-    white_mat = white_mat.real
-
-    # The mean covariance matrices may now be transformed
-    Sa = white_mat @ Ra @ white_mat.T
-    Sb = white_mat @ Rb @ white_mat.T
-
-    # Find and sort the generalized eigenvalues and eigenvector
-    _, U1 = sorted_eig(*eig(Sa, Sb))
-
-    # The projection matrix (the spatial filter) may now be obtained
-    SFa = U1.T @ white_mat
-    return SFa.astype(np.float32)
 
 class MyCSP(BaseEstimator, TransformerMixin):
 
@@ -77,7 +37,10 @@ class MyCSP(BaseEstimator, TransformerMixin):
             class_epochs = x[class_epochs_mask]
             epochs_per_class.append(class_epochs)
 
-        self.filters_ = CSP(epochs_per_class[0], epochs_per_class[1])
+        mean_covariance = lambda epochs : np.mean([covarianceMatrix(task) for task in epochs], axis=0)
+        mean_cov_b = mean_covariance(epochs_per_class[1])
+        mean_cov_a = mean_covariance(epochs_per_class[0])
+        self.filters_ = spatialFilter(mean_cov_b, mean_cov_a)
         self.patterns_ = pinv(self.filters_)
         
         return self
@@ -106,3 +69,42 @@ class MyCSP(BaseEstimator, TransformerMixin):
                 size=1.5,
                 ch_type=ch_type
             )
+    
+
+# covarianceMatrix takes a matrix A and returns the covariance matrix, scaled by the variance
+def covarianceMatrix(A):
+    cov_mat = A @ A.T
+    return cov_mat / np.trace(cov_mat) 
+
+def spatialFilter(Ra,Rb):
+    def sorted_eig(vals, vecs):
+        ord = np.argsort(vals)[::-1]
+        return vals[ord].real, vecs[:, ord].real
+
+    # Compute whitening matrix.
+    E, U = sorted_eig(*eig(Ra + Rb))
+    white_mat = np.sqrt(inv(np.diag(E))) @ U.T
+    white_mat = white_mat.real
+
+    # The mean covariance matrices may now be transformed
+    Sa = white_mat @ Ra @ white_mat.T
+    Sb = white_mat @ Rb @ white_mat.T
+
+    # Find and sort the generalized eigenvalues and eigenvector
+    _, U1 = sorted_eig(*eig(Sa, Sb))
+
+    # The projection matrix (the spatial filter) may now be obtained
+    SFa = U1.T @ white_mat
+    return SFa.astype(np.float32)
+
+def pinv(a, rtol=None):
+    """Compute a pseudo-inverse of a matrix."""
+    u, s, vh = np.linalg.svd(a, full_matrices=False)
+    del a
+    maxS = np.max(s)
+    if rtol is None:
+        rtol = max(vh.shape + u.shape) * np.finfo(u.dtype).eps
+    rank = np.sum(s > maxS * rtol)
+    u = u[:, :rank]
+    u /= s[:rank]
+    return (u @ vh[:rank]).conj().T
