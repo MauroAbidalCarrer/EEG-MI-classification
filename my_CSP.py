@@ -82,7 +82,7 @@ def spatialFilter(Ra,Rb):
     white_mat = np.sqrt(inv(np.diag(E))) @ U.T
     white_mat = white_mat.real
 
-    # The mean covariance matrices may now be transformed
+    # The mean covariance matrices may now be transformed.
     Sa = white_mat @ Ra @ white_mat.T
     Sb = white_mat @ Rb @ white_mat.T
 
