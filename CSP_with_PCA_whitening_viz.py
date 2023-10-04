@@ -47,7 +47,7 @@ def spatialFilter(Ra,Rb):
 
 def covarianceMatrix(A):
     cov_mat = A.T @ A
-    return cov_mat / np.trace(cov_mat) 
+    return cov_mat / np.trace(cov_mat)
 
 def set_plot_side_length(plot, side_length):
     plot.axis([-side_length, side_length, -side_length, side_length])

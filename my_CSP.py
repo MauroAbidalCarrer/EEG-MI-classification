@@ -77,7 +77,7 @@ def spatialFilter(Ra,Rb):
         ord = np.argsort(vals)[::-1]
         return vals[ord].real, vecs[:, ord].real
 
-    # Compute whitening matrix.
+    # Compute PCA whitening matrix.
     E, U = sorted_eig(*eig(Ra + Rb))
     white_mat = np.sqrt(inv(np.diag(E))) @ U.T
     white_mat = white_mat.real
