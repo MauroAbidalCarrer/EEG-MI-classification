@@ -40,7 +40,7 @@ class MyCSP(BaseEstimator, TransformerMixin):
         self.patterns_ = pinv(self.filters_)
         
         return self
-    
+
     def transform(self, x):
         """
         Extracts features from signal.
