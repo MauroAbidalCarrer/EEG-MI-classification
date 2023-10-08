@@ -1,8 +1,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from scipy.linalg import eigh, norm, inv, eig
+from scipy.linalg import norm, inv, eig
 from mne.viz import plot_topomap
-import matplotlib.pyplot as plt
 
 
 
