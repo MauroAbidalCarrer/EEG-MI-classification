@@ -82,5 +82,3 @@ while start+visible <= eeg.shape[0]:
 
     fig.canvas.draw()
     fig.canvas.flush_events()
-
-

@@ -91,7 +91,6 @@ class MyCSP(BaseEstimator, TransformerMixin):
         # The projection matrix (the spatial filter) may now be obtained
         SFa = U1.T @ white_mat
         filters = SFa.astype(np.float32)[:self.n_components]
-        # filters /= norm(filters, axis=0, keepdims=True)
         return filters
     
 # covarianceMatrix takes a matrix A and returns the covariance matrix, scaled by the variance
