@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from scipy.linalg import eigh, norm, inv, eig
 from mne.viz import plot_topomap
+from mne import EvokedArray
 import matplotlib.pyplot as plt
 
 
@@ -58,13 +59,44 @@ class MyCSP(BaseEstimator, TransformerMixin):
     
 
     def plot_patterns(self, raw_info, ch_type='eeg'):
-        for component in self.patterns_.T[:self.n_components]:
-            plot_topomap(
-                component,
-                raw_info,
-                size=1.5,
-                ch_type=ch_type
-            )
+        # for component in self.patterns_.T[:self.n_components]:
+        #     plot_topomap(
+        #         component,
+        #         raw_info,
+        #         size=1.5,
+        #         ch_type=ch_type
+        #     )
+        evoked_patterns = EvokedArray(self.patterns_[:, :self.n_components], raw_info, tmin=0)
+        # components = np.arange(self.n_components)
+        # print(components)
+        return evoked_patterns.plot_topomap(
+            times=evoked_patterns.times,
+            units="AU",
+            average=None,
+            ch_type=ch_type,
+            scalings=None,
+            sensors=True,
+            show_names=False,
+            mask=None,
+            mask_params=None,
+            contours=6,
+            outlines="head",
+            sphere=None,
+            # image_interp=_INTERPOLATION_DEFAULT,
+            # extrapolate=_EXTRAPOLATE_DEFAULT,
+            # border=_BORDER_DEFAULT,
+            res=64,
+            size=1,
+            cmap="RdBu_r",
+            vlim=(None, None),
+            cnorm=None,
+            colorbar=True,
+            cbar_fmt="%3.1f",
+            axes=None,
+            time_format="CSP pattern %01d",
+            nrows=1,
+            ncols=2,
+            show=True)
     
 
 # covarianceMatrix takes a matrix A and returns the covariance matrix, scaled by the variance
