@@ -1,8 +1,0 @@
-scikit-learn
-mne
-mne_realtime
-scipy
-numpy
-matplotlib
-ipywidgets
-ipympl
