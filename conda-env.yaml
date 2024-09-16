@@ -1,0 +1,18 @@
+name: data_ev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11.3
+  - pip=23.1.2
+  - plotly=5.19.0
+  - pydantic=1.10.7
+  - scipy=1.10.1
+  - streamlit=1.32.0
+  - nbformat=5.10.4
+
+  - mne
+  - matplotlib
+  - scikit-learn
+  - ipympl
+  - ipywidgets
+  - rich
