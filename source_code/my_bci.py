@@ -37,7 +37,7 @@ def main():
     args = parser.parse_args()
     # Logic to call the correct function
     if args.subject_idx is None and args.task_idx is None and args.mode is None:
-        scores = test_model_on_all_runs(dim_red_class=MyPCA)
+        scores = test_model_on_all_runs()
     elif args.subject_idx is not None and args.task_idx is not None and args.mode is not None:
         if args.subject_idx < 1 or args.subject_idx > 109:
             print("[red]Error: The subject index is not in bound [1, 109]")
@@ -86,7 +86,7 @@ def load_epochs(taks_idx:list[int], subject_idx:int) -> Epochs:
     raw.set_montage(make_standard_montage("standard_1005"))                         # - Specify to MNE what montage/setup was used during the recording.
                                                                                     #   "standard_1005" refers to a standardized way of placing electrodes on the testee.
                                                                                     #   See https://en.wikipedia.org/wiki/10%E2%80%9320_system_(EEG).
-    raw.filter(9, 30.0, skip_by_annotation="edge")                                  # - Apply bandpass filter, only keep frequecies in the range 7-30 Hz.
+    raw.filter(8, 30.0, skip_by_annotation="edge")                                  # - Apply bandpass filter, only keep frequecies in the range 7-30 Hz.
     events, _ = events_from_annotations(raw, event_id=dict(T1=1, T2=2))             # - Make events from annotaions, only use T1 and T2 annotations. Mark them as 0 and 1 respectively.
                                                                                     #   According to the Physionet EEG-MI dataset web page(https://physionet.org/content/eegmmidb/1.0.0/),
                                                                                     #   T0 corresponds to the motion of both fists and T1 to the motion of both feet.
@@ -129,7 +129,6 @@ def train_and_test_model(epochs: Epochs, dim_red_class=MyCSP, print_predictions=
         print(DF({"prediction": y_pred, "truth": y_pred}).rename_axis("epoch").eval("correct = prediction == truth"))
         print("test accurracy:", test_accuracy)
     scores = training_accuracies | {"test": test_accuracy}
-    # scores = Series(training_accuracies | {"test": test_accuracy})
     
     return bci_clf, scores
 
