@@ -6,7 +6,7 @@ TASKS_IDX = {
     "fists_or_feet": [4, 8, 12],
     "fists_or_feet_mi": [5, 9, 13],
 }
-ALL_TASKS = range(1, 14)
+ALL_TASKS = range(3, 14)
 ALL_SUBJECTS = range(1, 110)
 
 MY_BCI_ARGPARSE_DESCRIPTION = """

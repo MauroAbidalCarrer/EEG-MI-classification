@@ -1,3 +1,4 @@
+from wakepy import keep
 from time import time
 import sys
 import argparse
@@ -72,7 +73,14 @@ def test_model_on_all_runs(dim_red_class=MyCSP) -> DF:
     return scores
 
 def load_epochs(taks_idx:list[int], subject_idx:int) -> Epochs:
-    raw_fnames = eegbci.load_data(subject=subject_idx, runs=taks_idx, verbose=False)# - Get paths to edf files.
+    raw_fnames = eegbci.load_data(
+        subject=subject_idx,
+        runs=taks_idx,
+        verbose=False,
+        path="/mnt/nfs/homes/maabidal/sgoinfre/physionet",
+        update_path=True,
+
+    )
     raw:Raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames]) # - Load(read_raw_edf) in memomry(preloard=True) recprdings and convcatenate them.
     eegbci.standardize(raw)  # set channel names                                    # - Not sure what this does but it's necessary...
     raw.set_montage(make_standard_montage("standard_1005"))                         # - Specify to MNE what montage/setup was used during the recording.
@@ -131,6 +139,7 @@ if __name__ == "__main__":
     set_log_level(verbose=False)
     install_rich_traceback(extra_lines=0, width=130)
     try: 
-        main()
+        with keep.running():
+            main()
     except KeyboardInterrupt as _:
         print("[blue]exiting...")
