@@ -28,9 +28,9 @@ def main():
     parser = argparse.ArgumentParser(description=MY_BCI_ARGPARSE_DESCRIPTION)
 
     # Add optional positional arguments
-    parser.add_argument('subject_idx', type=int, nargs='?', help="An integer argument.")
+    parser.add_argument('subject_idx', type=int, nargs='?', help="The subject index, between 1 and 109.")
     parser.add_argument('task_idx', type=int, nargs='?', help="task index between 3 and 14.")
-    parser.add_argument('mode', type=str, nargs='?', help="The subject index, between 1 and 109.")
+    parser.add_argument('mode', type=str, nargs='?', help="Either train, predict or realtime")
 
 
     # Parse the command-line arguments
@@ -49,11 +49,32 @@ def main():
         elif args.mode == "train":
             raw, events, epochs = load_epochs(args.task_idx, args.subject_idx)
             train_and_test_model(epochs, print_train_accuracy=True)
+        elif args.mode == 'realtime':
+            real_time_inference(args.task_idx, args.subject_idx)
         else:
             print("Error: The third argument must be either 'predict' or 'train'")
     else:
         print("Error: The program expects either 0 or 3 arguments.")
 
+def real_time_inference(subject_idx:int, task_idx:int):
+    raw, events, epochs = load_epochs(task_idx, subject_idx)
+
+    raw_data = raw.get_data()
+
+    # make stim data from events.
+    stim_data = np.empty((raw_data.shape[1]))
+    for i in range(events.shape[0] - 1):
+        stim_data[events[i, 0]:events[i+1, 0]] = events[i, 2]
+    stim_data[events[-1, 0]:stim_data.shape[0]] = events[-1, 2]
+
+    bci_clf, accuracies = train_and_test_model(epochs, dim_red_class=MyCSP)
+
+    window_size = epochs.get_data(tmin=1.0, tmax=2.0).shape[2]
+    for start in range(0, raw_data.shape[1]-window_size):
+        data_window = [raw_data[:, start:start+window_size]]
+        stim = stim_data[start + window_size]
+        prediction = bci_clf.predict(data_window)[0]
+        print('start:', start,' stim:', stim, ' prediction:', prediction, ' ', 'Success' if prediction == stim else 'Failure')
 
 def test_model_on_all_runs(dim_red_class=MyCSP) -> DF:
     scores = {}
